@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flower Recognition · ResNet-18</title>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --ink: #1b2030;
+    --muted: #6b7280;
+    --line: #e6e9f0;
+    --brand: #4c6ef5;
+    --brand-soft: #edf1ff;
+    --ok: #12b886;
+    --bad: #e03131;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; }
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+  h1 { font-size: 21px; margin: 0 0 6px; letter-spacing: -0.2px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    font-size: 12px; color: var(--muted); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px;
+  }
+  .chip b { color: var(--ink); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; align-items: start; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 18px;
+  }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 14px; font-weight: 600; }
+  .thumbs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .thumb {
+    position: relative; padding: 0; border: 2px solid transparent; border-radius: 10px;
+    overflow: hidden; cursor: pointer; background: #eef1f6; aspect-ratio: 1;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb:hover { border-color: #c7d2fe; }
+  .thumb.active { border-color: var(--brand); }
+  .drop {
+    margin-top: 14px; border: 1.5px dashed #cbd5e1; border-radius: 12px;
+    padding: 16px; text-align: center; color: var(--muted); font-size: 13px; cursor: pointer;
+  }
+  .drop.hover { border-color: var(--brand); background: var(--brand-soft); }
+  .drop b { color: var(--brand); }
+  .preview { display: grid; grid-template-columns: 132px 1fr; gap: 16px; align-items: center; }
+  .preview img { width: 132px; height: 132px; object-fit: cover; border-radius: 12px; background: #eef1f6; }
+  .verdict { font-size: 22px; font-weight: 650; letter-spacing: -0.2px; margin: 0 0 4px; }
+  .verdict small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 8px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0; }
+  .badge { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 999px; margin-top: 8px; }
+  .badge.ok { background: #e6fcf5; color: #0b7285; }
+  .badge.bad { background: #fff5f5; color: #c92a2a; }
+  .bars { margin-top: 18px; display: grid; gap: 9px; }
+  .bar { display: grid; grid-template-columns: 1fr 52px; gap: 10px; align-items: center; font-size: 13px; }
+  .track { height: 9px; background: #f1f3f8; border-radius: 999px; overflow: hidden; margin-top: 4px; }
+  .fill { display: block; height: 100%; width: 0; background: var(--brand); border-radius: 999px; transition: width .45s ease; }
+  .fill.muted { background: #c3cad9; }
+  .prob { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); font-size: 13px; line-height: 1.7; }
+  footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .thumbs { grid-template-columns: repeat(4, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Flower Recognition · ResNet-18</h1>
+      <p>102 类花卉识别 · 64×64 输入 · 两阶段微调（特征提取 + 全参微调）</p>
+    </div>
+    <div class="meta">
+      <span class="chip">checkpoint <b>{{ checkpoint }}</b></span>
+      <span class="chip">gallery <b>{{ sample_count }}</b></span>
+      <span class="chip">top-1 <b>69.3%</b> · top-5 <b>89.2%</b></span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h2>选择一张验证集图片</h2>
+      <div class="thumbs" id="thumbs">
+        {% for item in gallery %}
+        <button class="thumb" data-name="{{ item.file_name }}" data-truth="{{ item.class_name }}">
+          <img src="{{ item.thumb }}" alt="{{ item.class_name }}" />
+        </button>
+        {% endfor %}
+      </div>
+      <div class="drop" id="drop">
+        或把图片拖到这里 / <b>点击上传</b>
+        <input type="file" id="file" accept="image/*" hidden />
+      </div>
+      <footer>点击缩略图或上传自己的照片，右侧会实时给出 top-5 概率。</footer>
+    </section>
+
+    <section class="card" id="result">
+      <h2>预测结果</h2>
+      <div class="empty" id="empty">
+        还没有选择图片。<br />左边点一张，或者拖一张你自己的花上来。
+      </div>
+      <div id="body" hidden>
+        <div class="preview">
+          <img id="previewImg" alt="input" />
+          <div>
+            <p class="verdict" id="verdict">—</p>
+            <p class="sub" id="sub"></p>
+            <span class="badge" id="badge" hidden></span>
+          </div>
+        </div>
+        <div class="bars" id="bars"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const thumbs = document.getElementById('thumbs');
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('file');
+const empty = document.getElementById('empty');
+const body = document.getElementById('body');
+
+function render(data) {
+  empty.hidden = true;
+  body.hidden = false;
+  document.getElementById('previewImg').src = data.image;
+  document.getElementById('verdict').textContent = data.top1;
+  document.getElementById('verdict').insertAdjacentHTML(
+    'beforeend', `<small>${(data.confidence * 100).toFixed(1)}%</small>`);
+
+  const badge = document.getElementById('badge');
+  if (data.correct === null) {
+    badge.hidden = true;
+  } else {
+    badge.hidden = false;
+    badge.className = 'badge ' + (data.correct ? 'ok' : 'bad');
+    badge.textContent = data.correct ? '与标注一致' : `标注为 ${data.ground_truth}`;
+  }
+
+  document.getElementById('sub').textContent =
+    `${data.source} · ${data.inference_ms} ms · ${data.predictions.length} 个候选`;
+
+  const bars = document.getElementById('bars');
+  bars.innerHTML = '';
+  data.predictions.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'bar';
+    row.innerHTML = `<div>
+        <div>${p.label}</div>
+        <div class="track"><span class="fill ${i ? 'muted' : ''}"></span></div>
+      </div>
+      <div class="prob">${(p.probability * 100).toFixed(1)}%</div>`;
+    bars.appendChild(row);
+    requestAnimationFrame(() => {
+      row.querySelector('.fill').style.width = Math.max(2, p.probability * 100) + '%';
+    });
+  });
+}
+
+async function predictSample(name) {
+  const form = new FormData();
+  form.append('sample', name);
+  const res = await fetch('/api/predict', { method: 'POST', body: form });
+  render(await res.json());
+}
+
+thumbs.addEventListener('click', (event) => {
+  const button = event.target.closest('.thumb');
+  if (!button) return;
+  [...thumbs.children].forEach(el => el.classList.remove('active'));
+  button.classList.add('active');
+  predictSample(button.dataset.name);
+});
+
+async function predictFile(file) {
+  const form = new FormData();
+  form.append('image', file);
+  const res = await fetch('/api/predict', { method: 'POST', body: form });
+  render(await res.json());
+}
+
+drop.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) predictFile(fileInput.files[0]);
+});
+['dragover', 'dragenter'].forEach(evt => drop.addEventListener(evt, (e) => {
+  e.preventDefault(); drop.classList.add('hover');
+}));
+['dragleave', 'drop'].forEach(evt => drop.addEventListener(evt, (e) => {
+  e.preventDefault(); drop.classList.remove('hover');
+}));
+drop.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files[0];
+  if (file) predictFile(file);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# ---- Datasets: kept locally, never committed ----
+# 6,552 train + 818 valid JPEGs (~300 MB). Run scripts/make_sample.py to build
+# the small committed sample instead; see README "Dataset".
+datasets/flowers/
+
+# ---- Weights ----
+# The released checkpoint is a GitHub Release asset. Only the slim
+# state_dict published there is versioned, never the 128 MB best.pt that still
+# carries optimizer state.
+weights/*.pt
+weights/*.pth
+!weights/.gitkeep
+
+# ---- Run artefacts ----
+outputs/
+outputs/eval/
+*.log
+demo_snapshot.html
+
+# ---- Editorial / private material ----
+# Dissertation drafts, the defence deck, the recording and the old repository.
+_archive/
+
+# ---- OS / editors ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

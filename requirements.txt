@@ -1,6 +1,12 @@
-torch
-torchvision
-numpy
-pandas
-matplotlib
-pillow
+# Tested on Python 3.8.18, CUDA 12.1, Windows 11.
+# torch/torchvision are the only heavy ones; install the wheel that matches your
+# CUDA (or the CPU build) before the rest:
+#   pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
+torch==2.2.0
+torchvision==0.17.0
+
+numpy==1.24.3
+pandas==2.0.3
+matplotlib==3.7.5
+Pillow==10.2.0
+flask==2.2.5

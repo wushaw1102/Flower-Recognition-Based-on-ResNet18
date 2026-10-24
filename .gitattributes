@@ -1,0 +1,20 @@
+# Normalise text so a Windows checkout behaves like a Linux one.
+* text=auto eol=lf
+
+*.py        text
+*.md        text
+*.txt       text
+*.csv       text
+*.json      text
+*.yml       text
+*.yaml      text
+*.html      text
+
+# Binary art and checkpoints must stay byte-identical.
+*.jpg       binary
+*.jpeg      binary
+*.png       binary
+*.gif       binary
+*.pt        binary
+*.pth       binary
+*.bin       binary
