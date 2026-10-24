@@ -100,6 +100,15 @@ largest off-diagonal cells are 3–4 images. That is the signature of a model th
 lacks capacity/resolution rather than one that has learned a wrong mapping — a
 mislabelled class order would instead show up as a solid off-diagonal line.
 
+<p align="center">
+  <img src="docs/images/sample_predictions.png" width="94%" alt="Eight random validation images with the model's top-1 prediction and probability" />
+</p>
+
+<sub>Eight random validation images. Two are wrong, and wrong in an informative
+way: the dianthus is called *foxglove*, the hibiscus is called *Californian
+poppy*. Mistakes cluster around shared colour and petal shape — not around
+random classes.</sub>
+
 Classes with the lowest accuracy (0 %, at 1–6 validation images each):
 
 | Class | Support | Errors land on |
